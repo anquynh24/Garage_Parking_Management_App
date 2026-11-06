@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Vehicles — Garage Parking{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Vehicles</h4>
+  <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#newVehicleModal">
+    + Add Vehicle
+  </button>
+</div>
+
+{% if vehicles %}
+<div class="table-responsive">
+  <table class="table table-sm table-striped" id="vehicles-table">
+    <thead>
+      <tr>
+        <th data-type="num">#<span class="sort-arrow"></span></th>
+        <th data-type="text">Plate<span class="sort-arrow"></span></th>
+        <th data-type="text">Make<span class="sort-arrow"></span></th>
+        <th data-type="text">Model<span class="sort-arrow"></span></th>
+        <th data-type="text">Color<span class="sort-arrow"></span></th>
+        <th data-type="text">Owner<span class="sort-arrow"></span></th>
+      </tr>
+      <tr class="filter-row">
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vehicles %}
+      <tr>
+        <td>{{ v.vehicleID }}</td>
+        <td>{{ v.vehicle_LPN }}</td>
+        <td>{{ v.vehicle_make }}</td>
+        <td>{{ v.vehicle_model }}</td>
+        <td>{{ v.vehicle_color }}</td>
+        <td>{% if v.owner_first_name %}{{ v.owner_first_name }} {{ v.owner_last_name }}{% else %}Unknown{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">No vehicles found.</p>
+{% endif %}
+
+<!-- ============================================================ -->
+<!-- Modal: Add Vehicle (same as Dashboard's, available here too) -->
+<!-- ============================================================ -->
+<div class="modal fade" id="newVehicleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add a Vehicle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{{ url_for('add_vehicle') }}">
+          <div class="mb-3">
+            <label class="form-label">License plate</label>
+            <input type="text" class="form-control" name="vehicle_lpn" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Make</label>
+              <input type="text" class="form-control" name="vehicle_make">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" name="vehicle_model">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Color</label>
+            <input type="text" class="form-control" name="vehicle_color">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Owner</label>
+            <select class="form-select" name="owner_choice">
+              <option value="unknown">Unknown owner</option>
+              {% for o in private_owners %}
+                <option value="{{ o.ownerID }}">{{ o.owner_first_name }} {{ o.owner_last_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Add vehicle</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='table-utils.js') }}"></script>
+<script>makeSortableFilterable('vehicles-table');</script>
+{% endblock %}

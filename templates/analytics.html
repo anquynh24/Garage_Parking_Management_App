@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Garage Parking{% endblock %}
+{% block content %}
+
+<h4 class="mb-3">Analytics</h4>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h6 class="card-title">Top 5 busiest spots (total minutes booked)</h6>
+    {% if top5 and top5|selectattr('minutes', 'gt', 0)|list %}
+      <div class="chart">
+        {% for s in top5 %}
+        <div class="chart-row">
+          <div class="chart-label">Spot {{ s.spotID }} <span class="text-muted">(F{{ s.spot_floor }}, {{ s.spot_type }})</span></div>
+          <div class="chart-bar-track">
+            <div class="chart-bar" style="width: {{ (s.minutes / max_minutes * 100) if max_minutes else 0 }}%;"></div>
+            <span class="chart-value">{{ s.minutes }} min</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No completed bookings yet to chart.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h6 class="card-title">Usage by spot (all-time)</h6>
+        {% if spot_usage %}
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th>Spot</th>
+                <th>Floor</th>
+                <th>Type</th>
+                <th>Minutes booked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in spot_usage %}
+              <tr>
+                <td>{{ s.spotID }}</td>
+                <td>{{ s.spot_floor }}</td>
+                <td>{{ s.spot_type }}</td>
+                <td>{{ s.minutes }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No spots found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h6 class="card-title">Spots owned per owner</h6>
+        {% if owner_counts %}
+        <div class="table-responsive">
+          <table class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th>Owner</th>
+                <th>Private spots owned</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for o in owner_counts %}
+              <tr>
+                <td>{{ o.owner_first_name }} {{ o.owner_last_name }}</td>
+                <td>{{ o.spot_count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No owners found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.chart-row { display: flex; align-items: center; margin-bottom: 10px; }
+.chart-label { width: 220px; flex-shrink: 0; font-size: 0.9rem; }
+.chart-bar-track {
+  position: relative;
+  flex-grow: 1;
+  background: #f1f1f1;
+  border-radius: 4px;
+  height: 26px;
+  overflow: visible;
+}
+.chart-bar {
+  background: #0d6efd;
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+}
+.chart-value {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+</style>
+{% endblock %}

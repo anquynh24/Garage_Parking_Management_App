@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Garage Parking{% endblock %}
+{% block content %}
+
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card text-center shadow-sm">
+      <div class="card-body">
+        <div class="display-6">{{ counts.spots if counts else '—' }}</div>
+        <div class="text-muted">Parking spots</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center shadow-sm">
+      <div class="card-body">
+        <div class="display-6">{{ counts.vehicles if counts else '—' }}</div>
+        <div class="text-muted">Registered vehicles</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center shadow-sm">
+      <div class="card-body">
+        <div class="display-6">{{ counts.events if counts else '—' }}</div>
+        <div class="text-muted">Recorded events</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-4">
+  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newEventModal">
+    + New Parking Event
+  </button>
+  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#newVehicleModal">
+    + Add Vehicle
+  </button>
+</div>
+
+<div class="row">
+  <div class="col-md-3">
+    <a href="{{ url_for('spots_page') }}" class="text-decoration-none">
+      <div class="card shadow-sm mb-3"><div class="card-body">
+        <h6 class="mb-1">Spots</h6>
+        <p class="text-muted small mb-0">View every parking spot, floor, type, and owner.</p>
+      </div></div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{{ url_for('vehicles_page') }}" class="text-decoration-none">
+      <div class="card shadow-sm mb-3"><div class="card-body">
+        <h6 class="mb-1">Vehicles</h6>
+        <p class="text-muted small mb-0">Browse registered vehicles and their owners.</p>
+      </div></div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{{ url_for('events_page') }}" class="text-decoration-none">
+      <div class="card shadow-sm mb-3"><div class="card-body">
+        <h6 class="mb-1">All Events</h6>
+        <p class="text-muted small mb-0">Sortable, filterable table of every booking.</p>
+      </div></div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{{ url_for('analytics_page') }}" class="text-decoration-none">
+      <div class="card shadow-sm mb-3"><div class="card-body">
+        <h6 class="mb-1">Analytics</h6>
+        <p class="text-muted small mb-0">Busiest spots and ownership breakdown.</p>
+      </div></div>
+    </a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h4 class="card-title mb-3">Recorded parking events</h4>
+    {% if events %}
+    <div class="table-responsive">
+      <table class="table table-sm table-striped" id="dashboard-events-table">
+        <thead>
+          <tr>
+            <th data-type="num">#<span class="sort-arrow"></span></th>
+            <th data-type="text">Vehicle<span class="sort-arrow"></span></th>
+            <th data-type="text">Spot<span class="sort-arrow"></span></th>
+            <th data-type="text">From<span class="sort-arrow"></span></th>
+            <th data-type="text">To<span class="sort-arrow"></span></th>
+          </tr>
+          <tr class="filter-row">
+            <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+            <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+            <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+            <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+            <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in events %}
+          <tr>
+            <td>{{ e.eventID }}</td>
+            <td>{{ e.vehicle_LPN }}{% if e.vehicle_make %} — {{ e.vehicle_make }} {{ e.vehicle_model }}{% endif %}</td>
+            <td>{{ e.spotID }} (F{{ e.spot_floor }}, {{ e.spot_type }})</td>
+            <td>{{ e.time_from }}</td>
+            <td>{{ e.time_to or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-muted">No events yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Modal: New Parking Event                                     -->
+<!-- ============================================================ -->
+<div class="modal fade" id="newEventModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">New Parking Event</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{{ url_for('create_event') }}" id="event-form">
+
+          <div class="mb-3">
+            <label class="form-label">License plate</label>
+            <input type="text" class="form-control" name="vehicle_lpn" id="vehicle_lpn"
+                   list="plate-list" autocomplete="off" placeholder="e.g. ABC1234" required>
+            <datalist id="plate-list">
+              {% for v in vehicles %}
+                <option value="{{ v.vehicle_LPN }}">
+              {% endfor %}
+            </datalist>
+            <div class="form-text" id="plate-status"></div>
+          </div>
+
+          <div class="alert alert-secondary py-2 px-3 d-none mb-3" id="vehicle-found-panel"></div>
+
+          <div class="card bg-light border-0 mb-3 d-none" id="vehicle-register-panel">
+            <div class="card-body py-3">
+              <div class="small fw-semibold mb-2">This plate isn't registered yet — register it now:</div>
+              <div class="row">
+                <div class="col-md-4 mb-2">
+                  <input type="text" class="form-control form-control-sm" name="new_vehicle_make" placeholder="Make">
+                </div>
+                <div class="col-md-4 mb-2">
+                  <input type="text" class="form-control form-control-sm" name="new_vehicle_model" placeholder="Model">
+                </div>
+                <div class="col-md-4 mb-2">
+                  <input type="text" class="form-control form-control-sm" name="new_vehicle_color" placeholder="Color">
+                </div>
+              </div>
+              <select class="form-select form-select-sm" name="new_owner_choice" id="new_owner_choice">
+                <option value="unknown">Unknown owner</option>
+                {% for o in private_owners %}
+                  <option value="{{ o.ownerID }}">{{ o.owner_first_name }} {{ o.owner_last_name }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Only owners who currently hold a private spot are listed.</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-control" name="entry_date" id="entry_date" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Start time</label>
+              <input type="time" class="form-control" name="entry_time" id="entry_time" value="09:00" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Duration: <span id="duration-value">2</span> hour(s)</label>
+            <input type="range" class="form-range" name="duration_hours" id="duration_hours"
+                   min="1" max="10" value="2">
+          </div>
+
+          <hr>
+
+          <label class="form-label d-block">Choose a spot on the map</label>
+          <div class="mb-2 small">
+            <span class="legend-dot legend-eligible"></span> Available for this vehicle/time
+            <span class="legend-dot legend-ineligible ms-3"></span> Not available
+            <span class="legend-dot legend-selected ms-3"></span> Selected
+          </div>
+
+          <div id="spot-map" class="mb-2">
+            {% for floor, floor_spots in spots|groupby('spot_floor') %}
+            <div class="floor-block mb-2">
+              <div class="floor-title text-muted small">Floor {{ floor }}</div>
+              <div class="spot-row">
+                {% for s in floor_spots %}
+                <div class="spot-box neutral"
+                     data-spot-id="{{ s.spotID }}"
+                     data-type="{{ s.spot_type }}"
+                     title="Spot {{ s.spotID }} — {{ s.spot_type }}{% if s.spot_type == 'private' and s.owner_first_name %} (owner: {{ s.owner_first_name }} {{ s.owner_last_name }}){% endif %}">
+                  {{ s.spot_number }}
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-2">
+            <span class="form-text" id="selected-spot-text">No spot selected yet — pick a vehicle and time above, then click a green spot.</span>
+          </div>
+
+          <div class="card bg-light border-0 mb-3 d-none" id="spot-events-panel">
+            <div class="card-body py-2">
+              <div class="small fw-semibold mb-1" id="spot-events-title"></div>
+              <div class="small" id="spot-events-list"></div>
+            </div>
+          </div>
+
+          <input type="hidden" name="spot_id" id="spot_id" value="">
+
+          <button type="submit" class="btn btn-primary w-100" id="submit-btn" disabled>Create parking event</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Modal: Add Vehicle                                            -->
+<!-- ============================================================ -->
+<div class="modal fade" id="newVehicleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add a Vehicle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{{ url_for('add_vehicle') }}">
+          <div class="mb-3">
+            <label class="form-label">License plate</label>
+            <input type="text" class="form-control" name="vehicle_lpn" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Make</label>
+              <input type="text" class="form-control" name="vehicle_make">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" name="vehicle_model">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Color</label>
+            <input type="text" class="form-control" name="vehicle_color">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Owner</label>
+            <select class="form-select" name="owner_choice">
+              <option value="unknown">Unknown owner</option>
+              {% for o in private_owners %}
+                <option value="{{ o.ownerID }}">{{ o.owner_first_name }} {{ o.owner_last_name }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Only owners who currently hold a private spot are listed.</div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Add vehicle</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.spot-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.spot-box {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #ccc; border-radius: 6px;
+  font-weight: 600; font-size: 0.85rem;
+  cursor: pointer; user-select: none;
+  transition: transform 0.1s ease;
+}
+.spot-box.neutral { background: #f1f1f1; border-color: #ccc; color: #888; }
+.spot-box.eligible { background: #d4edda; border-color: #28a745; color: #155724; }
+.spot-box.ineligible { background: #f8d7da; border-color: #dc3545; color: #721c24; opacity: 0.85; }
+.spot-box.selected { outline: 3px solid #0d6efd; outline-offset: 1px; }
+.spot-box:hover { transform: scale(1.08); }
+.floor-title { margin-bottom: 2px; }
+.legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; margin-right: 3px; }
+.legend-eligible { background: #d4edda; border: 2px solid #28a745; }
+.legend-ineligible { background: #f8d7da; border: 2px solid #dc3545; }
+.legend-selected { background: #fff; outline: 2px solid #0d6efd; }
+</style>
+
+<script>
+const UNKNOWN_OWNER_ID = {{ unknown_owner_id }};
+
+const plateInput = document.getElementById('vehicle_lpn');
+const plateStatus = document.getElementById('plate-status');
+const vehicleFoundPanel = document.getElementById('vehicle-found-panel');
+const vehicleRegisterPanel = document.getElementById('vehicle-register-panel');
+const newOwnerChoice = document.getElementById('new_owner_choice');
+const entryDate = document.getElementById('entry_date');
+const entryTime = document.getElementById('entry_time');
+const durationInput = document.getElementById('duration_hours');
+const durationValue = document.getElementById('duration-value');
+const spotIdInput = document.getElementById('spot_id');
+const selectedSpotText = document.getElementById('selected-spot-text');
+const submitBtn = document.getElementById('submit-btn');
+const spotBoxes = document.querySelectorAll('.spot-box');
+const spotEventsPanel = document.getElementById('spot-events-panel');
+const spotEventsTitle = document.getElementById('spot-events-title');
+const spotEventsList = document.getElementById('spot-events-list');
+
+// Exactly one of these is set at a time, based on the plate lookup result.
+let currentVehicleId = null;
+let currentOwnerId = null;
+let plateLookupTimer = null;
+
+durationInput.addEventListener('input', () => {
+  durationValue.textContent = durationInput.value;
+});
+
+function clearSelection() {
+  spotIdInput.value = '';
+  submitBtn.disabled = true;
+  selectedSpotText.textContent = 'No spot selected yet — pick a plate and time above, then click a green spot.';
+  spotBoxes.forEach(box => box.classList.remove('selected'));
+}
+
+function resetNeutralMap(message) {
+  spotBoxes.forEach(box => {
+    box.classList.remove('eligible', 'ineligible');
+    box.classList.add('neutral');
+    box.title = message;
+  });
+}
+
+async function checkPlate() {
+  const lpn = plateInput.value.trim();
+  currentVehicleId = null;
+  currentOwnerId = null;
+
+  if (!lpn) {
+    plateStatus.textContent = '';
+    vehicleFoundPanel.classList.add('d-none');
+    vehicleRegisterPanel.classList.add('d-none');
+    clearSelection();
+    resetNeutralMap('Enter a license plate first');
+    return;
+  }
+
+  plateStatus.textContent = 'Looking up plate…';
+
+  let data;
+  try {
+    const res = await fetch(`/api/vehicle_by_plate?lpn=${encodeURIComponent(lpn)}`);
+    if (!res.ok) throw new Error('lookup failed');
+    data = await res.json();
+  } catch (err) {
+    plateStatus.textContent = 'Could not look up that plate — try again.';
+    return;
+  }
+
+  plateStatus.textContent = '';
+
+  if (data.found) {
+    currentVehicleId = data.vehicle.vehicleID;
+    vehicleFoundPanel.textContent = `Found: ${data.vehicle.label}`;
+    vehicleFoundPanel.classList.remove('d-none');
+    vehicleRegisterPanel.classList.add('d-none');
+  } else {
+    currentOwnerId = parseOwnerChoice();
+    vehicleFoundPanel.classList.add('d-none');
+    vehicleRegisterPanel.classList.remove('d-none');
+  }
+
+  refreshMap();
+}
+
+function parseOwnerChoice() {
+  const val = newOwnerChoice.value;
+  return val === 'unknown' ? UNKNOWN_OWNER_ID : parseInt(val, 10);
+}
+
+async function refreshMap() {
+  const date = entryDate.value;
+  const time = entryTime.value;
+  const duration = durationInput.value;
+
+  clearSelection();
+
+  if ((currentVehicleId === null && currentOwnerId === null) || !date || !time || !duration) {
+    resetNeutralMap('Enter a plate, date, time, and duration first');
+    return;
+  }
+
+  const params = new URLSearchParams({
+    entry_date: date,
+    entry_time: time,
+    duration_hours: duration,
+  });
+  if (currentVehicleId !== null) {
+    params.set('vehicle_id', currentVehicleId);
+  } else {
+    params.set('owner_id', currentOwnerId);
+  }
+
+  let data;
+  try {
+    const res = await fetch(`/api/eligible_spots?${params.toString()}`);
+    if (!res.ok) throw new Error('request failed');
+    data = await res.json();
+  } catch (err) {
+    return;
+  }
+
+  const bySpotId = {};
+  data.spots.forEach(s => { bySpotId[s.spotID] = s; });
+
+  spotBoxes.forEach(box => {
+    const spotId = parseInt(box.dataset.spotId, 10);
+    const info = bySpotId[spotId];
+    box.classList.remove('neutral', 'eligible', 'ineligible');
+    if (!info) return;
+    if (info.eligible) {
+      box.classList.add('eligible');
+      box.title = `Spot ${spotId} — available`;
+    } else {
+      box.classList.add('ineligible');
+      box.title = `Spot ${spotId} — ${info.reason}`;
+    }
+  });
+}
+
+async function showSpotEvents(spotId) {
+  try {
+    const res = await fetch(`/api/spot_events/${spotId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    spotEventsTitle.textContent = `Spot ${spotId} — recorded bookings (${data.events.length})`;
+    if (data.events.length === 0) {
+      spotEventsList.innerHTML = '<span class="text-muted">No bookings recorded for this spot yet.</span>';
+    } else {
+      spotEventsList.innerHTML = data.events.slice(0, 8).map(e =>
+        `${e.vehicle_LPN}: ${e.time_from} → ${e.time_to || 'open'}`
+      ).join('<br>');
+    }
+    spotEventsPanel.classList.remove('d-none');
+  } catch (err) {
+    // informational panel only — fail silently
+  }
+}
+
+spotBoxes.forEach(box => {
+  box.addEventListener('click', () => {
+    const spotId = box.dataset.spotId;
+    showSpotEvents(spotId);
+
+    if (!box.classList.contains('eligible')) return;
+    spotBoxes.forEach(b => b.classList.remove('selected'));
+    box.classList.add('selected');
+    spotIdInput.value = spotId;
+    selectedSpotText.textContent = `Selected: Spot ${spotId}`;
+    submitBtn.disabled = false;
+  });
+});
+
+plateInput.addEventListener('input', () => {
+  clearTimeout(plateLookupTimer);
+  plateLookupTimer = setTimeout(checkPlate, 350);
+});
+
+newOwnerChoice.addEventListener('change', () => {
+  if (currentVehicleId === null) {
+    currentOwnerId = parseOwnerChoice();
+    refreshMap();
+  }
+});
+
+entryDate.addEventListener('change', refreshMap);
+entryTime.addEventListener('change', refreshMap);
+durationInput.addEventListener('change', refreshMap);
+
+const newEventModal = document.getElementById('newEventModal');
+newEventModal.addEventListener('shown.bs.modal', () => {
+  resetNeutralMap('Enter a plate, date, time, and duration first');
+});
+</script>
+
+<script src="{{ url_for('static', filename='table-utils.js') }}"></script>
+<script>makeSortableFilterable('dashboard-events-table');</script>
+
+{% endblock %}

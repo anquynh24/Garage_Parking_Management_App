@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Spots — Garage Parking{% endblock %}
+{% block content %}
+
+<h4 class="mb-3">Parking Spots</h4>
+
+{% if spots %}
+<div class="table-responsive">
+  <table class="table table-sm table-striped" id="spots-table">
+    <thead>
+      <tr>
+        <th data-type="num">#<span class="sort-arrow"></span></th>
+        <th data-type="num">Floor<span class="sort-arrow"></span></th>
+        <th data-type="num">Number<span class="sort-arrow"></span></th>
+        <th data-type="text">Type<span class="sort-arrow"></span></th>
+        <th data-type="text">Owner<span class="sort-arrow"></span></th>
+      </tr>
+      <tr class="filter-row">
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+        <th><input type="text" class="form-control form-control-sm col-filter" placeholder="Filter..."></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in spots %}
+      <tr>
+        <td>{{ s.spotID }}</td>
+        <td>{{ s.spot_floor }}</td>
+        <td>{{ s.spot_number }}</td>
+        <td>{{ s.spot_type }}</td>
+        <td>{% if s.spot_type == 'private' and s.owner_first_name %}{{ s.owner_first_name }} {{ s.owner_last_name }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">No spots found.</p>
+{% endif %}
+
+<script src="{{ url_for('static', filename='table-utils.js') }}"></script>
+<script>makeSortableFilterable('spots-table');</script>
+{% endblock %}
